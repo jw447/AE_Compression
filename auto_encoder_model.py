@@ -37,13 +37,10 @@ import gmx_input
 # Constants describing the training process.
 MOVING_AVERAGE_DECAY = 1.0     # The decay to use for the moving average.
 # NUM_EPOCHS_PER_DECAY = 1      # Epochs after which learning rate decays.
-<<<<<<< HEAD
 # LEARNING_RATE_DECAY_FACTOR = 1  # Learning rate decay factor.
 INITIAL_LEARNING_RATE = 0.001       # Initial learning rate.
-=======
 LEARNING_RATE_DECAY_FACTOR = 1  # Learning rate decay factor.
-INITIAL_LEARNING_RATE = 0.1       # Initial learning rate.
->>>>>>> 7049bf9b412ff27d33d5cdcbeb23d82b5ed0f9b2
+
 
 # If a model is trained with multiple GPUs, prefix all Op names with tower_name
 # to differentiate the operations. Note that this prefix is removed from the
@@ -188,7 +185,7 @@ def _fc_layer(input, kernel_size, name, drop_out=0.5):
         weights = _variable_with_weight_decay('weights', shape=kernel_size,
                                               stddev=0.03, wd=0.0)
         biases = _variable_on_cpu('biases', kernel_size[1], tf.constant_initializer(0))
-        local1 = tf.nn.tanh(tf.matmul(input, weights) + biases, name=scope.name)
+        local1 = tf.nn.sigmoid(tf.matmul(input, weights) + biases, name=scope.name)
         _activation_summary(local1)
     return local1
 
@@ -259,8 +256,8 @@ def inference_fconn(images):
     fc4 = _fc_layer(fc3, [300, 100], 'encoder_fc_layer4')
     # fc5 = _fc_layer(fc4, [100, 50], 'encoder_fc_layer5')
     # print(fc3)
-
     rep = fc4
+    print(rep)
     # decoder
     # fc6 = _fc_layer(rep, [50, 100], 'decoder_fc_layer1')
     fc7 = _fc_layer(rep, [100, 300], 'decoder_fc_layer2')
