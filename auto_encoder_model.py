@@ -38,7 +38,7 @@ import gmx_input
 MOVING_AVERAGE_DECAY = 1.0     # The decay to use for the moving average.
 # NUM_EPOCHS_PER_DECAY = 1      # Epochs after which learning rate decays.
 # LEARNING_RATE_DECAY_FACTOR = 1  # Learning rate decay factor.
-INITIAL_LEARNING_RATE = 0.001       # Initial learning rate.
+INITIAL_LEARNING_RATE = 0.003       # Initial learning rate.
 LEARNING_RATE_DECAY_FACTOR = 1  # Learning rate decay factor.
 
 
@@ -503,7 +503,7 @@ def train(total_loss, global_step):
 
     # Compute gradients.
     with tf.control_dependencies([loss_averages_op]):
-        opt = tf.train.GradientDescentOptimizer(lr)
+        opt = tf.train.AdamOptimizer(lr)
         grads = opt.compute_gradients(total_loss)
 
     # Apply gradients.

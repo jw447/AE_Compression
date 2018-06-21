@@ -1,41 +1,18 @@
-AutoEncoder Prototype Experiment (Mark-II)
+AutoEncoder Prototype Experiment (Mark-II) Work Log
 ==========================================
 
-This experiment is designed to see if and how AutoEncoder (AE) can perform as compressor on scientific data. Previously, Dpot data lacked training set therefore we switched to Gromacs simulation of _Lysozyme in Water_.
-
-Data Description
-----------------
-
-- Data is generated from Gromacs simulation and the output is md_0_1.trr.
-
-- Md_0_1.trr contains 33876 atoms' 3D coordinates in 500,000 frames. The time interval between two adjacent frames is 2fs (1 femtosecond = 10^-15 second). Therefore the whole simulation covers atoms motion in 1000ps (1 picosecond = 10^-12 second) = 1 ns (1 nanoseconds = 10^-9second).
-
-- The simulation can also record the velocity, energy and other parameters. We don't record them in data md_0_1.trr for the sake that it is beyond the need of AE model training and it is too large to handle (current data is >100GB already).
-
-- .trr is a binary file, maybe ASCII, it is hard for Tensor-Flow to handle directly because it contains some non-structure data and useless characters ("{","}","="). So we dump the data into txt file and conduct some data cleaning and paperation for model training. The cleaned data is called md_0_1.txt which .
-
-- VMD can visualize the atom trajectory file (.trr) from simulation easily. But after we dump data into text file (.txt), we cannot write it back to binary (at lease for now). So it is hard to visualize after data reconstruction and compare the difference visually. It is a pity.
-
-Model Training
---------------
-
-The shape of data is [500000,33876,3], we split the training set and testing set by the rule-of-thumb, aka 80/20 rule. Therefore, training set has 400000 rows and testing set has 100000 row. It might be wise to shuffle the rows before loading them for model training.
-
-Considering the size of training set, we can set a mini-batch at the size of 100 rows. Each time we only load a mini-batch to train the model.
-
-Miscellaneous
--------------
-
-Due to the size of training data, only python notebook, a sample of training data and some output figures are updated in dropbox.
-
-Update in June 8th 2018
+Update on June 8th 2018
 ------------------------
 
 After data cleaning and data preparation, the training data is located in ./md_0_2_new_0. There are 31 data files named from md_0_2_new.0 to md_0_2_new.30. In each file 10 frames of simulated coordinates are stored. So there are 10(frames)*33876(num of atoms)*3(3d coordinates) in each file and total 310(frames)*33876(num of atoms)*3(3d coordinates) in /md_0_2_new_0.
 
-Data perparation is pretty labour-intense so we can start with these data. We train the model for 25 steps with mini-batch of 10 frames and validate with 5 steps with mini-batch of 10 frames. 
-<<<<<<< HEAD
+Data perparation is pretty labour-intense so we can start with these data. We train the model for 25 steps with mini-batch of 10 frames and validate with 5 steps with mini-batch of 10 frames.
 
+
+Update on June 18th 2018
+------------------------
+
+It's shown that training data is not sufficient. Simulation is re-run with checkpoint and new data is genereated every 100 steps. Data is stored in GROMACS_data under data. data_100step_1000seg contains 10000 steps simulation where data from each step is cut to 1000 atoms; and data_300steps_10000seg contains 30000 steps.
 
 Update on June 20th 2018
 ------------------------
