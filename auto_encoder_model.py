@@ -112,11 +112,6 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
     #   tf.add_to_collection('losses', weight_decay)
     return var
 
-
-<<<<<<< HEAD
-=======
-
->>>>>>> 7049bf9b412ff27d33d5cdcbeb23d82b5ed0f9b2
 # Todo2
 def inputs():
     """Construct input for CIFAR evaluation using the Reader ops.
@@ -141,7 +136,7 @@ def inputs():
         raise ValueError('Please supply a data_dir')
     data_dir = FLAGS.data_dir
 
-<<<<<<< HEAD
+
     filenames = [os.path.join(data_dir,'md_%d_seg.txt' % i) for i in range(0,300)]
     for f in filenames:
         if not tf.gfile.Exists(f):
@@ -149,15 +144,6 @@ def inputs():
     # print(len(filenames))
 
     filename_queue = tf.train.string_input_producer(filenames,shuffle=False)
-=======
-    filenames = [os.path.join(data_dir,'md_%d_seg.txt' % i) for i in range(0,100)]
-    for f in filenames:
-        if not tf.gfile.Exists(f):
-            raise ValueError('File ' + f + 'Not found.')
-    print(filenames)
-
-    filename_queue = tf.train.string_input_producer(filenames)
->>>>>>> 7049bf9b412ff27d33d5cdcbeb23d82b5ed0f9b2
 
     # shape = [3,300]
     return gmx_input.read_data(filename_queue)
