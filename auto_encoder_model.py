@@ -37,8 +37,13 @@ import gmx_input
 # Constants describing the training process.
 MOVING_AVERAGE_DECAY = 1.0     # The decay to use for the moving average.
 # NUM_EPOCHS_PER_DECAY = 1      # Epochs after which learning rate decays.
+<<<<<<< HEAD
 # LEARNING_RATE_DECAY_FACTOR = 1  # Learning rate decay factor.
 INITIAL_LEARNING_RATE = 0.001       # Initial learning rate.
+=======
+LEARNING_RATE_DECAY_FACTOR = 1  # Learning rate decay factor.
+INITIAL_LEARNING_RATE = 0.1       # Initial learning rate.
+>>>>>>> 7049bf9b412ff27d33d5cdcbeb23d82b5ed0f9b2
 
 # If a model is trained with multiple GPUs, prefix all Op names with tower_name
 # to differentiate the operations. Note that this prefix is removed from the
@@ -75,7 +80,11 @@ def _variable_on_cpu(name, shape, initializer):
     Returns:
       Variable Tensor
     """
+<<<<<<< HEAD
     with tf.device('/cpu:0'):
+=======
+    with tf.device('/gpu:0'):
+>>>>>>> 7049bf9b412ff27d33d5cdcbeb23d82b5ed0f9b2
         var = tf.get_variable(name, shape, initializer=initializer)
     return var
 
@@ -104,6 +113,10 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
     return var
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7049bf9b412ff27d33d5cdcbeb23d82b5ed0f9b2
 # Todo2
 def inputs():
     """Construct input for CIFAR evaluation using the Reader ops.
@@ -128,6 +141,7 @@ def inputs():
         raise ValueError('Please supply a data_dir')
     data_dir = FLAGS.data_dir
 
+<<<<<<< HEAD
     filenames = [os.path.join(data_dir,'md_%d_seg.txt' % i) for i in range(0,300)]
     for f in filenames:
         if not tf.gfile.Exists(f):
@@ -135,6 +149,15 @@ def inputs():
     # print(len(filenames))
 
     filename_queue = tf.train.string_input_producer(filenames,shuffle=False)
+=======
+    filenames = [os.path.join(data_dir,'md_%d_seg.txt' % i) for i in range(0,100)]
+    for f in filenames:
+        if not tf.gfile.Exists(f):
+            raise ValueError('File ' + f + 'Not found.')
+    print(filenames)
+
+    filename_queue = tf.train.string_input_producer(filenames)
+>>>>>>> 7049bf9b412ff27d33d5cdcbeb23d82b5ed0f9b2
 
     # shape = [3,300]
     return gmx_input.read_data(filename_queue)
@@ -224,13 +247,21 @@ def _conv_trans_layer2(input, filter_size, name, strides, padding='SAME', activa
         resized = tf.image.resize_images(input, height, width)
         conv = tf.nn.conv2d(resized, kernel, [1,1,1,1], padding=padding)
         if activation:
+<<<<<<< HEAD
             conv1 = tf.nn.relu(tf.nn.bias_add(conv, biases), name=scope.name) # sigmod
+=======
+            conv1 = tf.nn.relu(tf.nn.bias_add(conv, biases), name=scope.name)
+>>>>>>> 7049bf9b412ff27d33d5cdcbeb23d82b5ed0f9b2
         else:
             conv1 = tf.nn.bias_add(conv, biases, name=scope.name)
         _activation_summary(conv1)
     return conv1
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7049bf9b412ff27d33d5cdcbeb23d82b5ed0f9b2
 def inference_fconn(images):
     '''
     Auto encoder with fully connected layers
@@ -245,6 +276,7 @@ def inference_fconn(images):
     # print(images)
     # print('------------------')
     # encoder
+<<<<<<< HEAD
     fc1 = _fc_layer(images, [1000, 700], 'encoder_fc_layer1')
     fc2 = _fc_layer(fc1, [700, 500], 'encoder_fc_layer2')
     fc3 = _fc_layer(fc2, [500, 300], 'encoder_fc_layer3')
@@ -261,6 +293,20 @@ def inference_fconn(images):
     fc10 = _fc_layer(fc9, [700, 1000], 'decoder_fc_layer5')
     # print(fc6)
     return rep, fc10
+=======
+    fc1 = _fc_layer(images, [1000, 500], 'encoder_fc_layer1')
+    fc2 = _fc_layer(fc1, [500, 200], 'encoder_fc_layer2')
+    # fc3 = _fc_layer(fc2, [100, 50], 'encoder_fc_layer3')
+    # print(fc3)
+
+    rep = fc2
+    # decoder
+    # fc4 = _fc_layer(rep, [50, 100], 'decoder_fc_layer1')
+    fc3 = _fc_layer(rep, [200, 500], 'decoder_fc_layer2')
+    fc4 = _fc_layer(fc3, [500, 1000], 'decoder_fc_layer3')
+    # print(fc6)
+    return rep, fc4
+>>>>>>> 7049bf9b412ff27d33d5cdcbeb23d82b5ed0f9b2
 
 
 def inference_conv(images):
@@ -472,6 +518,7 @@ def train(total_loss, global_step):
     # Variables that affect learning rate.
     # num_batches_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size
     # decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
+<<<<<<< HEAD
     # decay_steps = 1
     # Decay the learning rate exponentially based on the number of steps.
     # lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
@@ -481,6 +528,17 @@ def train(total_loss, global_step):
     #                                 staircase=True)
     # tf.summary.scalar('learning_rate', lr)
     lr = INITIAL_LEARNING_RATE
+=======
+    decay_steps = 1
+    # Decay the learning rate exponentially based on the number of steps.
+    lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
+                                    global_step,
+                                    decay_steps,
+                                    LEARNING_RATE_DECAY_FACTOR,
+                                    staircase=True)
+    tf.summary.scalar('learning_rate', lr)
+
+>>>>>>> 7049bf9b412ff27d33d5cdcbeb23d82b5ed0f9b2
     # Generate moving averages of all losses and associated summaries.
     loss_averages_op = _add_loss_summaries(total_loss)
 

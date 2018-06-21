@@ -17,7 +17,9 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('train_dir', './autoencoder_results/',
                            """Directory where to write event logs """
                            """and checkpoint.""")
+                           
 tf.app.flags.DEFINE_integer('max_steps', 25000,
+
                             """Number of steps to run.""")
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
@@ -49,11 +51,7 @@ def train():
 
         # use 2d for now, with fc layer
         data = tf.reshape(data, [data_obj.height,data_obj.width])
-        # print(data)
-        # sess = tf.Session()
-        # tf.train.start_queue_runners(sess=sess)
-        # data = sess.run(data)
-        # print(data)
+
         # Build a Graph that computes the logits predictions from the
         # inference model.
         # representation, reconstruct, dec4 = model.inference(images)
@@ -80,8 +78,7 @@ def train():
         summary_op = tf.summary.merge_all()
 
         # Build an initialization operation to run below.
-        # init = tf.initialize_all_variables()
-        init = tf.global_variables_initializer()
+        init = tf.initialize_all_variables()
 
         config = tf.ConfigProto()
         config.log_device_placement=FLAGS.log_device_placement

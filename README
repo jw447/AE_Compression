@@ -34,11 +34,10 @@ Update in June 8th 2018
 After data cleaning and data preparation, the training data is located in ./md_0_2_new_0. There are 31 data files named from md_0_2_new.0 to md_0_2_new.30. In each file 10 frames of simulated coordinates are stored. So there are 10(frames)*33876(num of atoms)*3(3d coordinates) in each file and total 310(frames)*33876(num of atoms)*3(3d coordinates) in /md_0_2_new_0.
 
 Data perparation is pretty labour-intense so we can start with these data. We train the model for 25 steps with mini-batch of 10 frames and validate with 5 steps with mini-batch of 10 frames. 
+<<<<<<< HEAD
 
 
 Update on June 20th 2018
 ------------------------
 
 Todo: test sigmoid over relu, test trainning with single frame(bad, but just to find out), test adam optimizer.
-
-
