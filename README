@@ -1,19 +1,24 @@
-AutoEncoder Prototype Experiment (Mark-II)
-==========================================
+AutoEncoder Experiment
+======================
 
-This experiment is designed to see if and how AutoEncoder (AE) can perform as compressor on scientific data. Previously, Dpot data lacked training set therefore we switched to Gromacs simulation of _Lysozyme in Water_.
+In this project, we aim to build an modern compressor using AutoEncoder to compress scientific datasets.
 
 Data Description
-----------------
+---------------
+GROMACS_data contains two sets of dataset, **data_100step_1000seg** and **data_300step_1000seg**, where they contains 10000 frames and 30000 frames respectively. Each frame from simulation contains the 3-D coordinates of 33876 atoms at each certain time step. We work with 1000 atoms first so data has been cut to 1000 rows per frame.
 
-- Data is generated from Gromacs simulation and the output is md_0_1.trr.
+Getting Started
+---------------
 
-- Md_0_1.trr contains 33876 atoms' 3D coordinates in 500,000 frames. The time interval between two adjacent frames is 2fs (1 femtosecond = 10^-15 second). Therefore the whole simulation covers atoms motion in 1000ps (1 picosecond = 10^-12 second) = 1 ns (1 nanoseconds = 10^-9second).
+- Model Training
 
-- The simulation can also record the velocity, energy and other parameters. We don't record them in data md_0_1.trr for the sake that it is beyond the need of AE model training and it is too large to handle (current data is >100GB already).
+```python
+$ python3 auto_encoder_train.py
+```
 
-- .trr is a binary file, maybe ASCII, it is hard for Tensor-Flow to handle directly because it contains some non-structure data and useless characters ("{","}","="). So we dump the data into txt file and conduct some data cleaning and paperation for model training. The cleaned data is called md_0_1.txt which .
+- Model Evaluation
 
-- VMD can visualize the atom trajectory file (.trr) from simulation easily. But after we dump data into text file (.txt), we cannot write it back to binary (at lease for now). So it is hard to visualize after data reconstruction and compare the difference visually. It is a pity.
-
+```python
+$ python3 auto_encoder_eval.py
+```
 

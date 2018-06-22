@@ -38,7 +38,7 @@ import gmx_input
 MOVING_AVERAGE_DECAY = 1.0     # The decay to use for the moving average.
 # NUM_EPOCHS_PER_DECAY = 1      # Epochs after which learning rate decays.
 # LEARNING_RATE_DECAY_FACTOR = 1  # Learning rate decay factor.
-INITIAL_LEARNING_RATE = 0.003       # Initial learning rate.
+INITIAL_LEARNING_RATE = 0.001       # Initial learning rate.
 LEARNING_RATE_DECAY_FACTOR = 1  # Learning rate decay factor.
 
 
@@ -184,8 +184,9 @@ def _fc_layer(input, kernel_size, name, drop_out=0.5):
     with tf.variable_scope(name) as scope:
         weights = _variable_with_weight_decay('weights', shape=kernel_size,
                                               stddev=0.03, wd=0.0)
+        # weights = tf.Variable(tf.random_normal(kernel_size),'weights')
         biases = _variable_on_cpu('biases', kernel_size[1], tf.constant_initializer(0))
-        local1 = tf.nn.sigmoid(tf.matmul(input, weights) + biases, name=scope.name)
+        local1 = tf.nn.relu(tf.matmul(input, weights) + biases, name=scope.name)
         _activation_summary(local1)
     return local1
 
@@ -491,12 +492,12 @@ def train(total_loss, global_step):
 
     decay_steps = 1
     # Decay the learning rate exponentially based on the number of steps.
-    lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
-                                    global_step,
-                                    decay_steps,
-                                    LEARNING_RATE_DECAY_FACTOR,
-                                    staircase=True)
-    tf.summary.scalar('learning_rate', lr)
+    # lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
+    #                                 global_step,
+    #                                 decay_steps,
+    #                                 LEARNING_RATE_DECAY_FACTOR,
+    #                                 staircase=True)
+    # tf.summary.scalar('learning_rate', lr)
 
     # Generate moving averages of all losses and associated summaries.
     loss_averages_op = _add_loss_summaries(total_loss)
