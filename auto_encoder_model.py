@@ -22,8 +22,6 @@ FLAGS = tf.app.flags.FLAGS
 # tf.app.flags.DEFINE_string('data_dir', '../data/SyntheticScatteringData3BIN_log_32',
 #                            """Path to the CIFAR-10 data directory: ../data/SyntheticScatteringData3BIN_log_32, ../data/SyntheticScatteringData_multi_cropsBIN_log_32 """)
 
-# -------------------------------------------------------------------------------
-# Todo1
 import gmx_input
 
 # Global constants describing the CIFAR-10 data set.
@@ -32,14 +30,13 @@ import gmx_input
 # NUM_CLASSES = FLAGS.num_tags
 # NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = gmx_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN
 # NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = gmx_input.NUM_EXAMPLES_PER_EPOCH_FOR_EVAL
-# -------------------------------------------------------------------------------
 
 # Constants describing the training process.
-MOVING_AVERAGE_DECAY = 1.0     # The decay to use for the moving average.
+# MOVING_AVERAGE_DECAY = 1.0     # The decay to use for the moving average.
 # NUM_EPOCHS_PER_DECAY = 1      # Epochs after which learning rate decays.
 # LEARNING_RATE_DECAY_FACTOR = 1  # Learning rate decay factor.
-INITIAL_LEARNING_RATE = 0.001       # Initial learning rate.
-LEARNING_RATE_DECAY_FACTOR = 1  # Learning rate decay factor.
+INITIAL_LEARNING_RATE = 0.0001       # Initial learning rate.
+# LEARNING_RATE_DECAY_FACTOR = 1  # Learning rate decay factor.
 
 
 # If a model is trained with multiple GPUs, prefix all Op names with tower_name
@@ -66,45 +63,6 @@ def _activation_summary(x):
     tf.summary.scalar(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
 
-def _variable_on_cpu(name, shape, initializer):
-    """Helper to create a Variable stored on CPU memory.
-
-    Args:
-      name: name of the variable
-      shape: list of ints
-      initializer: initializer for Variable
-
-    Returns:
-      Variable Tensor
-    """
-
-    with tf.device('/cpu:0'):
-        var = tf.get_variable(name, shape, initializer=initializer)
-    return var
-
-
-def _variable_with_weight_decay(name, shape, stddev, wd):
-    """Helper to create an initialized Variable with weight decay.
-
-    Note that the Variable is initialized with a truncated normal distribution.
-    A weight decay is added only if one is specified.
-
-    Args:
-      name: name of the variable
-      shape: list of ints
-      stddev: standard deviation of a truncated Gaussian
-      wd: add L2Loss weight decay multiplied by this float. If None, weight
-          decay is not added for this Variable.
-
-    Returns:
-      Variable Tensor
-    """
-    var = _variable_on_cpu(name, shape,
-                           tf.truncated_normal_initializer(stddev=stddev))
-    # if wd is not None:
-    #   weight_decay = tf.mul(tf.nn.l2_loss(var), wd, name='weight_loss')
-    #   tf.add_to_collection('losses', weight_decay)
-    return var
 
 # Todo2
 def inputs():
@@ -131,7 +89,7 @@ def inputs():
     data_dir = FLAGS.data_dir
 
 
-    filenames = [os.path.join(data_dir,'md_%d_seg.txt' % i) for i in range(0,300)]
+    filenames = [os.path.join(data_dir,'md_%d_seg.txt' % i) for i in range(0,100)]
     for f in filenames:
         if not tf.gfile.Exists(f):
             raise ValueError('File ' + f + 'Not found.')
@@ -143,6 +101,216 @@ def inputs():
     return gmx_input.read_data(filename_queue)
 
 
+
+# modularized for fully conncected layer
+def _fc_layer(input, kernel_size, name, drop_out=0.5):
+    with tf.variable_scope(name) as scope:
+        # weights = _variable_with_weight_decay('weights', shape=kernel_size,
+        #                                       stddev=0.03, wd=0.0)
+        # # weights = tf.Variable(tf.random_normal(kernel_size),'weights')
+        # biases = _variable_on_cpu('biases', kernel_size[1], tf.constant_initializer(0))
+        # local1 = tf.nn.relu(tf.matmul(input, weights) + biases, name=scope.name)
+        local1 = tf.layers.dense(input,kernel_size,activation=tf.nn.relu,name=name)
+        _activation_summary(local1)
+    return local1
+
+
+
+
+def inference_fconn(images):
+    '''
+    Auto encoder with fully connected layers
+    Args:
+        images: Images returned from inputs(). 1000 * 1
+
+    Returns:
+        representation, reconstruction
+    '''
+    # print(images)
+    # images = tf.transpose(images)
+    # print(images)
+    # print('------------------')
+    # encoder
+    print(images)
+    fc1 = _fc_layer(images, 512, 'encoder_fc_layer1')
+    fc2 = _fc_layer(fc1, 256, 'encoder_fc_layer2')
+    fc3 = _fc_layer(fc2, 128, 'encoder_fc_layer3')
+    fc4 = _fc_layer(fc3, 64, 'encoder_fc_layer4')
+    fc5 = _fc_layer(fc4, 32, 'encoder_fc_layer5')
+    # print(fc3)
+    rep = fc5
+    # print('representation:')
+    # print(rep)
+    # decoder
+    fc6 = _fc_layer(rep, 64, 'decoder_fc_layer1')
+    fc7 = _fc_layer(fc6, 128, 'decoder_fc_layer2')
+    fc8 = _fc_layer(fc7, 256, 'decoder_fc_layer3')
+    fc9 = _fc_layer(fc8, 512, 'decoder_fc_layer4')
+    logits = tf.layers.dense(fc9, 1000, activation=None)
+    
+    return rep, logits
+
+
+def loss(reconstruct, input):
+    """ MSE Loss
+
+    Args:
+      reconstruct: reconstructed input
+      input: original input
+
+    Returns:
+      Loss tensor of type float.
+    """
+    # Calculate the average cross entropy loss across the batch.
+
+    error = tf.reduce_mean(tf.square(input-reconstruct), name='mean_squared_error')
+    tf.add_to_collection('losses', error)
+
+    # The total loss is defined as the cross entropy loss plus all of the weight
+    # decay terms (L2 loss).
+    # return tf.add_n(tf.get_collection('losses'), name='total_loss')
+    tf.summary.scalar(error.op.name,error)
+    return error
+
+'''
+def _add_loss_summaries(total_loss):
+    """Add summaries for losses in CIFAR-10 model.
+
+    Generates moving average for all losses and associated summaries for
+    visualizing the performance of the network.
+
+    Args:
+      total_loss: Total loss from loss().
+    Returns:
+      loss_averages_op: op for generating moving averages of losses.
+    """
+    # Compute the moving average of all individual losses and the total loss.
+    loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
+    losses = tf.get_collection('losses')
+    loss_averages_op = loss_averages.apply(losses + [total_loss])
+
+    # Attach a scalar summary to all individual losses and the total loss; do the
+    # same for the averaged version of the losses.
+    for l in losses + [total_loss]:
+        # Name each loss as '(raw)' and name the moving average version of the loss
+        # as the original loss name.
+        tf.summary.scalar(l.op.name +' (raw)', l)
+        tf.summary.scalar(l.op.name, loss_averages.average(l))
+
+    return loss_averages_op
+'''
+
+def train(loss, global_step):
+    """Train Auto Encoder model.
+
+    Create an optimizer and apply to all trainable variables. Add moving
+    average for all trainable variables.
+
+    Args:
+      total_loss: Total loss from loss().
+      global_step: Integer Variable counting the number of training steps
+        processed.
+    Returns:
+      train_op: op for training.
+    """
+    # Variables that affect learning rate.
+    # num_batches_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size
+    # decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
+
+    # decay_steps = 1
+    # Decay the learning rate exponentially based on the number of steps.
+    # lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
+    #                                 global_step,
+    #                                 decay_steps,
+    #                                 LEARNING_RATE_DECAY_FACTOR,
+    #                                 staircase=True)
+    # tf.summary.scalar('learning_rate', lr)
+    lr = INITIAL_LEARNING_RATE
+
+    # decay_steps = 1
+    # Decay the learning rate exponentially based on the number of steps.
+    # lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
+    #                                 global_step,
+    #                                 decay_steps,
+    #                                 LEARNING_RATE_DECAY_FACTOR,
+    #                                 staircase=True)
+    # tf.summary.scalar('learning_rate', lr)
+
+    # Generate moving averages of all losses and associated summaries.
+    # loss_averages_op = _add_loss_summaries(total_loss)
+
+    # Compute gradients.
+    # with tf.control_dependencies([loss_averages_op]):
+    opt = tf.train.AdamOptimizer(lr).minimize(loss)
+        # grads = opt.compute_gradients(total_loss)
+
+    # Apply gradients.
+    # apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
+
+    # Add histograms for trainable variables.
+    # for var in tf.trainable_variables():
+    #     tf.summary.histogram(var.op.name, var)
+
+    # Add histograms for gradients.
+    # for grad, var in grads:
+    #     if grad is not None:
+    #         tf.summary.histogram(var.op.name + '/gradients', grad)
+
+    # # Track the moving averages of all trainable variables.
+    # variable_averages = tf.train.ExponentialMovingAverage(
+    #     MOVING_AVERAGE_DECAY, global_step)
+    # variables_averages_op = variable_averages.apply(tf.trainable_variables())
+
+    # with tf.control_dependencies([apply_gradient_op, variables_averages_op]):
+    # train_op = tf.no_op(name='train')
+
+    # return train_op
+    return opt
+
+'''
+def _variable_on_cpu(name, shape, initializer):
+    """Helper to create a Variable stored on CPU memory.
+
+    Args:
+      name: name of the variable
+      shape: list of ints
+      initializer: initializer for Variable
+
+    Returns:
+      Variable Tensor
+    """
+
+    with tf.device('/cpu:0'):
+        var = tf.get_variable(name, shape, initializer=initializer)
+    return var
+'''
+
+'''
+def _variable_with_weight_decay(name, shape, stddev, wd):
+    """Helper to create an initialized Variable with weight decay.
+
+    Note that the Variable is initialized with a truncated normal distribution.
+    A weight decay is added only if one is specified.
+
+    Args:
+      name: name of the variable
+      shape: list of ints
+      stddev: standard deviation of a truncated Gaussian
+      wd: add L2Loss weight decay multiplied by this float. If None, weight
+          decay is not added for this Variable.
+
+    Returns:
+      Variable Tensor
+    """
+    var = _variable_on_cpu(name, shape, 
+                            tf.truncated_normal_initializer(stddev=stddev))
+    # if wd is not None:
+    #   weight_decay = tf.mul(tf.nn.l2_loss(var), wd, name='weight_loss')
+    #   tf.add_to_collection('losses', weight_decay)
+    return var
+'''
+
+'''
 # modularized for convolutional layer
 def _conv_layer(input, kernel_size, name, padding='SAME', visualize = False):
     with tf.variable_scope(name) as scope:
@@ -177,20 +345,9 @@ def _conv_layer(input, kernel_size, name, padding='SAME', visualize = False):
         #                                [1, filter_layer1_height * filter_w, filter_layer1_width * filter_w, filter_d])
         #     tf.image_summary(name+'_filter', filter_layer1)
     return conv1
+'''
 
-
-# modularized for fully conncected layer
-def _fc_layer(input, kernel_size, name, drop_out=0.5):
-    with tf.variable_scope(name) as scope:
-        weights = _variable_with_weight_decay('weights', shape=kernel_size,
-                                              stddev=0.03, wd=0.0)
-        # weights = tf.Variable(tf.random_normal(kernel_size),'weights')
-        biases = _variable_on_cpu('biases', kernel_size[1], tf.constant_initializer(0))
-        local1 = tf.nn.relu(tf.matmul(input, weights) + biases, name=scope.name)
-        _activation_summary(local1)
-    return local1
-
-
+'''
 # modularized for conv_transpose layer
 # use conv2d_transpose
 def _conv_trans_layer(input, filter_size, output_maps, name, strides, padding='SAME', activation = True, output_shape = None):
@@ -212,8 +369,9 @@ def _conv_trans_layer(input, filter_size, output_maps, name, strides, padding='S
             conv1 = tf.nn.bias_add(conv, biases, name=scope.name)
         _activation_summary(conv1)
     return conv1
+'''
 
-
+'''
 # modularized for con_transpose layer
 # use upsampling + convolution
 def _conv_trans_layer2(input, filter_size, name, strides, padding='SAME', activation = True):
@@ -233,43 +391,9 @@ def _conv_trans_layer2(input, filter_size, name, strides, padding='SAME', activa
             conv1 = tf.nn.bias_add(conv, biases, name=scope.name)
         _activation_summary(conv1)
     return conv1
+'''
 
-
-
-def inference_fconn(images):
-    '''
-    Auto encoder with fully connected layers
-    Args:
-        images: Images returned from inputs().
-
-    Returns:
-        representation, reconstruction
-    '''
-    # print(images)
-    images = tf.transpose(images)
-    # print(images)
-    # print('------------------')
-    # encoder
-
-    fc1 = _fc_layer(images, [1000, 700], 'encoder_fc_layer1')
-    fc2 = _fc_layer(fc1, [700, 500], 'encoder_fc_layer2')
-    fc3 = _fc_layer(fc2, [500, 300], 'encoder_fc_layer3')
-    fc4 = _fc_layer(fc3, [300, 100], 'encoder_fc_layer4')
-    # fc5 = _fc_layer(fc4, [100, 50], 'encoder_fc_layer5')
-    # print(fc3)
-    rep = fc4
-    print(rep)
-    # decoder
-    # fc6 = _fc_layer(rep, [50, 100], 'decoder_fc_layer1')
-    fc7 = _fc_layer(rep, [100, 300], 'decoder_fc_layer2')
-    fc8 = _fc_layer(fc7, [300, 500], 'decoder_fc_layer3')
-    fc9 = _fc_layer(fc8, [500, 700], 'decoder_fc_layer4')
-    fc10 = _fc_layer(fc9, [700, 1000], 'decoder_fc_layer5')
-    # print(fc6)
-    return rep, fc10
-
-
-
+'''
 def inference_conv(images):
     """
     Auto encoder model
@@ -414,117 +538,4 @@ def inference_conv(images):
 
     return rep, dec_conv1 #,  dec_conv9, dec_conv8, dec_conv7, dec_conv6
     # return  dec_conv1
-
-
-def loss(reconstruct, input):
-    """ MSE Loss
-
-    Args:
-      reconstruct: reconstructed input
-      input: original input
-
-    Returns:
-      Loss tensor of type float.
-    """
-    # Calculate the average cross entropy loss across the batch.
-
-    error = tf.reduce_mean(tf.square(input-reconstruct), name='mean_squared_error')
-    tf.add_to_collection('losses', error)
-
-    # The total loss is defined as the cross entropy loss plus all of the weight
-    # decay terms (L2 loss).
-    return tf.add_n(tf.get_collection('losses'), name='total_loss')
-
-
-def _add_loss_summaries(total_loss):
-    """Add summaries for losses in CIFAR-10 model.
-
-    Generates moving average for all losses and associated summaries for
-    visualizing the performance of the network.
-
-    Args:
-      total_loss: Total loss from loss().
-    Returns:
-      loss_averages_op: op for generating moving averages of losses.
-    """
-    # Compute the moving average of all individual losses and the total loss.
-    loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
-    losses = tf.get_collection('losses')
-    loss_averages_op = loss_averages.apply(losses + [total_loss])
-
-    # Attach a scalar summary to all individual losses and the total loss; do the
-    # same for the averaged version of the losses.
-    for l in losses + [total_loss]:
-        # Name each loss as '(raw)' and name the moving average version of the loss
-        # as the original loss name.
-        tf.summary.scalar(l.op.name +' (raw)', l)
-        tf.summary.scalar(l.op.name, loss_averages.average(l))
-
-    return loss_averages_op
-
-
-def train(total_loss, global_step):
-    """Train Auto Encoder model.
-
-    Create an optimizer and apply to all trainable variables. Add moving
-    average for all trainable variables.
-
-    Args:
-      total_loss: Total loss from loss().
-      global_step: Integer Variable counting the number of training steps
-        processed.
-    Returns:
-      train_op: op for training.
-    """
-    # Variables that affect learning rate.
-    # num_batches_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size
-    # decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
-
-    # decay_steps = 1
-    # Decay the learning rate exponentially based on the number of steps.
-    # lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
-    #                                 global_step,
-    #                                 decay_steps,
-    #                                 LEARNING_RATE_DECAY_FACTOR,
-    #                                 staircase=True)
-    # tf.summary.scalar('learning_rate', lr)
-    lr = INITIAL_LEARNING_RATE
-
-    decay_steps = 1
-    # Decay the learning rate exponentially based on the number of steps.
-    # lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
-    #                                 global_step,
-    #                                 decay_steps,
-    #                                 LEARNING_RATE_DECAY_FACTOR,
-    #                                 staircase=True)
-    # tf.summary.scalar('learning_rate', lr)
-
-    # Generate moving averages of all losses and associated summaries.
-    loss_averages_op = _add_loss_summaries(total_loss)
-
-    # Compute gradients.
-    with tf.control_dependencies([loss_averages_op]):
-        opt = tf.train.AdamOptimizer(lr)
-        grads = opt.compute_gradients(total_loss)
-
-    # Apply gradients.
-    apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
-
-    # Add histograms for trainable variables.
-    for var in tf.trainable_variables():
-        tf.summary.histogram(var.op.name, var)
-
-    # Add histograms for gradients.
-    for grad, var in grads:
-        if grad is not None:
-            tf.summary.histogram(var.op.name + '/gradients', grad)
-
-    # Track the moving averages of all trainable variables.
-    variable_averages = tf.train.ExponentialMovingAverage(
-        MOVING_AVERAGE_DECAY, global_step)
-    variables_averages_op = variable_averages.apply(tf.trainable_variables())
-
-    with tf.control_dependencies([apply_gradient_op, variables_averages_op]):
-        train_op = tf.no_op(name='train')
-
-    return train_op
+'''
