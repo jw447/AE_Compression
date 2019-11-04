@@ -1,3 +1,24 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:607318ed118534b5c93eb8c42c6289dda0424e62088c84ccc2ec16156563012e
-size 686
+AutoEncoder Experiment
+======================
+
+In this project, we aim to build an modern compressor using AutoEncoder to compress scientific datasets.
+
+Data Description
+---------------
+GROMACS_data contains two sets of dataset, **data_100step_1000seg** and **data_300step_1000seg**, where they contains 10000 frames and 30000 frames respectively. Each frame from simulation contains the 3-D coordinates of 33876 atoms at each certain time step. We work with 1000 atoms first so data has been cut to 1000 rows per frame.
+
+Getting Started
+---------------
+
+- Model Training
+
+```python
+$ python3 auto_encoder_train.py
+```
+
+- Model Evaluation
+
+```python
+$ python3 auto_encoder_eval.py
+```
+

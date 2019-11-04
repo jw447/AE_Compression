@@ -1,3 +1,20 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:fd411719ff0a01a6c670b78c1d6648f66719a14579a3fe383200bd6e89bf5193
-size 1248
+AutoEncoder Prototype Experiment (Mark-II) Work Log
+==========================================
+
+Update on June 8th 2018
+------------------------
+
+After data cleaning and data preparation, the training data is located in ./md_0_2_new_0. There are 31 data files named from md_0_2_new.0 to md_0_2_new.30. In each file 10 frames of simulated coordinates are stored. So there are 10(frames)*33876(num of atoms)*3(3d coordinates) in each file and total 310(frames)*33876(num of atoms)*3(3d coordinates) in /md_0_2_new_0.
+
+Data perparation is pretty labour-intense so we can start with these data. We train the model for 25 steps with mini-batch of 10 frames and validate with 5 steps with mini-batch of 10 frames.
+
+
+Update on June 18th 2018
+------------------------
+
+It's shown that training data is not sufficient. Simulation is re-run with checkpoint and new data is genereated every 100 steps. Data is stored in GROMACS_data under data. data_100step_1000seg contains 10000 steps simulation where data from each step is cut to 1000 atoms; and data_300steps_10000seg contains 30000 steps.
+
+Update on June 20th 2018
+------------------------
+
+Todo: test sigmoid over relu, test trainning with single frame(bad, but just to find out), test adam optimizer.
